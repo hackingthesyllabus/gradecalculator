@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Final Grade Calculator</title>
+<style>
+  .gcalc-scope {
+    --gc-ink: #202A3B;
+    --gc-ink-soft: #5B6472;
+    --gc-line: #DAD3C4;
+    --gc-navy: #23324D;
+    --gc-good: #3E6B4F;
+    --gc-warn: #A3452C;
+    --gc-field: #FFFFFF;
+    --gc-sample: #A2A8B3;
+
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--gc-ink);
+    max-width: 700px;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+    box-sizing: border-box;
+  }
+  .gcalc-scope * { box-sizing: border-box; }
+
+  .gc-intro { margin-bottom: 1.5rem; }
+  .gc-eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #A9782F;
+    font-weight: 600;
+  }
+  .gc-h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.4rem, 5vw, 1.8rem);
+    font-weight: 600;
+    margin: 0.3rem 0 0.4rem;
+    color: var(--gc-navy);
+  }
+  .gc-sub {
+    font-size: 0.9rem;
+    color: var(--gc-ink-soft);
+    line-height: 1.5;
+    margin: 0;
+    max-width: 52ch;
+  }
+
+  /* course card */
+  .gc-course {
+    border: 1px solid var(--gc-line);
+    border-radius: 10px;
+    padding: clamp(1rem, 4vw, 1.75rem);
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+  .gc-course-c0 { background: #FAF7F0; }
+  .gc-course-c1 { background: #F1F5F0; }
+  .gc-course-c2 { background: #EFF3F7; }
+  .gc-course-c3 { background: #F8F0EF; }
+  .gc-course-c4 { background: #F3F0F6; }
+
+  .gc-course-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+  .gc-course-name {
+    flex: 1;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.05rem, 4vw, 1.3rem);
+    color: var(--gc-navy);
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--gc-line);
+    padding: 0.2rem 0.1rem;
+    min-width: 0;
+  }
+  .gc-course-name:focus { outline: none; border-bottom-color: var(--gc-navy); }
+  .gc-remove-course {
+    background: none;
+    border: 1px solid var(--gc-line);
+    color: var(--gc-ink-soft);
+    font-size: 0.75rem;
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .gc-remove-course:hover { color: var(--gc-warn); border-color: var(--gc-warn); }
+
+  .gc-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.gc-table { width: 100%; min-width: 280px; border-collapse: collapse; font-size: 0.9rem; }
+  .gc-table thead th {
+    text-align: left;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gc-ink-soft);
+    font-weight: 600;
+    padding: 0 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--gc-line);
+    white-space: nowrap;
+  }
+  .gc-table th.gc-num, .gc-table td.gc-num { text-align: right; width: clamp(3.6rem, 20vw, 6.5rem); }
+  .gc-table td { padding: 0.35rem 0.3rem; vertical-align: middle; }
+  .gc-table td:first-child, .gc-table th:first-child { padding-left: 0; }
+  .gc-table tbody tr:not(:last-child) td { border-bottom: 1px solid #EFEAE0; }
+
+  .gc-table input[type="text"] {
+    width: 100%;
+    font: inherit;
+    color: var(--gc-ink);
+    background: var(--gc-field);
+    border: 1px solid var(--gc-line);
+    border-radius: 5px;
+    padding: 0.45rem 0.5rem;
+  }
+  .gc-field { position: relative; display: block; }
+  .gc-field input[type="number"] {
+    width: 100%;
+    font: inherit;
+    color: var(--gc-ink);
+    background: var(--gc-field);
+    border: 1px solid var(--gc-line);
+    border-radius: 5px;
+    padding: 0.45rem clamp(1.05rem, 5vw, 1.5rem) 0.45rem clamp(0.25rem, 2vw, 0.5rem);
+    text-align: right;
+  }
+  .gc-field .gc-suffix {
+    position: absolute;
+    right: clamp(0.3rem, 1.5vw, 0.55rem);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gc-ink-soft);
+    font-size: 0.75rem;
+    pointer-events: none;
+  }
+  .gc-table input.gc-sample-value,
+  .gc-target-input.gc-sample-value { color: var(--gc-sample); }
+
+  .gc-table input:focus, .gc-target-input:focus {
+    outline: 2px solid var(--gc-navy);
+    outline-offset: 1px;
+    border-color: var(--gc-navy);
+  }
+  .gc-remove {
+    background: none;
+    border: none;
+    color: var(--gc-ink-soft);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.4rem;
+    min-width: 2rem;
+    min-height: 2rem;
+  }
+  .gc-remove:hover { color: var(--gc-warn); }
+
+  .gc-add-row {
+    margin-top: 0.75rem;
+    background: none;
+    border: 1px dashed var(--gc-line);
+    color: var(--gc-navy);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.55rem 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    min-height: 2.5rem;
+  }
+  .gc-add-row:hover { border-color: var(--gc-navy); background: rgba(255,255,255,0.5); }
+
+  .gc-weight-row {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 1.3rem;
+    font-size: 0.78rem;
+    color: var(--gc-ink-soft);
+    flex-wrap: wrap;
+  }
+  .gc-weight-track { flex: 1; min-width: 6rem; height: 6px; background: #EFEAE0; border-radius: 3px; overflow: hidden; }
+  .gc-weight-fill { height: 100%; background: var(--gc-navy); width: 0%; transition: width 0.15s ease; }
+  .gc-weight-fill.gc-over { background: var(--gc-warn); }
+
+  .gc-results {
+    margin-top: 1.4rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 460px) {
+    .gc-results { grid-template-columns: 1fr; }
+  }
+  .gc-box {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid var(--gc-line);
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+  }
+  .gc-box-label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--gc-ink-soft);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  .gc-box-value {
+    display: block;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.5rem, 6vw, 1.9rem);
+    color: var(--gc-navy);
+    line-height: 1;
+  }
+  .gc-box-note { display: block; font-size: 0.8rem; color: var(--gc-ink-soft); margin-top: 0.5rem; line-height: 1.4; }
+  .gc-box-note.gc-note-good { color: var(--gc-good); }
+  .gc-box-note.gc-note-warn { color: var(--gc-warn); }
+
+  .gc-target-field { position: relative; }
+  .gc-target-input {
+    width: 100%;
+    font: inherit;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.4rem;
+    color: var(--gc-navy);
+    background: var(--gc-field);
+    border: 1px solid var(--gc-line);
+    border-radius: 6px;
+    padding: 0.3rem 1.7rem 0.3rem 0.5rem;
+  }
+  .gc-target-field .gc-suffix { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); color: var(--gc-ink-soft); font-size: 1rem; pointer-events: none; }
+
+  .gc-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .gc-add-course {
+    background: var(--gc-navy);
+    color: #fff;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.7rem 1.2rem;
+    border-radius: 7px;
+    cursor: pointer;
+    min-height: 2.75rem;
+  }
+  .gc-add-course:hover { opacity: 0.9; }
+  .gc-reset {
+    background: none;
+    border: none;
+    color: var(--gc-ink-soft);
+    font-size: 0.78rem;
+    text-decoration: underline;
+    cursor: pointer;
+    min-height: 2.75rem;
+  }
+  .gc-reset:hover { color: var(--gc-warn); }
+  .gc-save-note {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--gc-ink-soft);
+    margin-top: 0.9rem;
+  }
+
+  /* keep true rows on narrow screens — just compact them */
+  @media (max-width: 560px) {
+    .gc-table { font-size: 0.82rem; }
+    .gc-table thead th { font-size: 0.62rem; padding-bottom: 0.35rem; }
+    .gc-table td { padding: 0.3rem 0.2rem; }
+    .gc-table input[type="text"] { padding: 0.4rem 0.4rem; }
+    .gc-field input[type="number"] { padding-top: 0.4rem; padding-bottom: 0.4rem; }
+    .gc-remove { min-width: 1.7rem; min-height: 1.7rem; padding: 0.2rem; font-size: 1.05rem; }
+  }
+
+  /* very narrow phones / small smartwatches: drop the % hint text, table can scroll sideways as a last resort */
+  @media (max-width: 400px) {
+    .gc-table th.gc-num, .gc-table td.gc-num { width: clamp(2.9rem, 24vw, 4rem); }
+    .gc-field .gc-suffix { display: none; }
+    .gc-field input[type="number"] { padding-right: 0.35rem; }
+  }
+
+
+  @media (max-width: 340px) {
+    .gcalc-scope { padding: 0 0.5rem; }
+    .gc-course { padding: 0.85rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="gcalc-scope">
+  <div class="gc-intro">
+    <span class="gc-eyebrow">Course Tool</span>
+    <h1 class="gc-h1">Final Grade Calculator</h1>
+    <p class="gc-sub">Add each course you're tracking. List its evaluations, fill in the grades you've gotten back, and set a target to see what you need on what's left. Your entries are saved on this device, so they'll be here next time you visit.</p>
+  </div>
+
+  <div id="gc-courses"></div>
+
+  <div class="gc-footer">
+    <button class="gc-add-course" id="gc-add-course" type="button">+ Add another course</button>
+    <button class="gc-reset" id="gc-reset" type="button">Clear everything and start over</button>
+  </div>
+  <p class="gc-save-note">Saved automatically on this device only. Nothing is sent anywhere.</p>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = "gcalc_courses_v1";
+  var PALETTE_COUNT = 5;
+
+  var STARTER_ROWS = [
+    { name: "Midterm Exam", weight: 20, grade: "" },
+    { name: "Assignment 1", weight: 15, grade: "" },
+    { name: "Assignment 2", weight: 20, grade: "" },
+    { name: "Tutorial Participation", weight: 10, grade: "" },
+    { name: "Final Exam", weight: 35, grade: "" }
+  ];
+
+  var coursesEl = document.getElementById("gc-courses");
+  var addCourseBtn = document.getElementById("gc-add-course");
+  var resetBtn = document.getElementById("gc-reset");
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  }
+
+  function round1(n) { return Math.round(n * 10) / 10; }
+
+  // ---------- building rows ----------
+  function buildRowEl(row, sample) {
+    var tr = document.createElement("tr");
+    var weightVal = row.weight === "" || row.weight == null ? "" : row.weight;
+    var gradeVal = row.grade === "" || row.grade == null ? "" : row.grade;
+    tr.innerHTML =
+      '<td data-label="Evaluation"><input type="text" class="gc-name" placeholder="e.g. Essay 1" value="' + escapeHtml(row.name || "") + '"></td>' +
+      '<td data-label="Worth" class="gc-num"><span class="gc-field">' +
+        '<input type="number" class="gc-weight' + (sample ? " gc-sample-value" : "") + '" min="0" max="100" step="1" placeholder="0" value="' + escapeHtml(weightVal) + '">' +
+        '<span class="gc-suffix">%</span></span></td>' +
+      '<td data-label="Grade" class="gc-num"><span class="gc-field">' +
+        '<input type="number" class="gc-grade' + (sample ? " gc-sample-value" : "") + '" min="0" max="100" step="1" placeholder="\u2014" value="' + escapeHtml(gradeVal) + '">' +
+        '<span class="gc-suffix">%</span></span></td>' +
+      '<td class="gc-remove-cell"><button type="button" class="gc-remove" aria-label="Remove evaluation" title="Remove">&times;</button></td>';
+    return tr;
+  }
+
+  // ---------- building a course card ----------
+  function buildCourseEl(course, colorIdx, sample) {
+    var card = document.createElement("div");
+    card.className = "gc-course gc-course-c" + (colorIdx % PALETTE_COUNT);
+    card.dataset.colorIdx = colorIdx;
+
+    card.innerHTML =
+      '<div class="gc-course-head">' +
+        '<input type="text" class="gc-course-name" placeholder="Course name" value="' + escapeHtml(course.name || "") + '">' +
+        '<button type="button" class="gc-remove-course">Remove course</button>' +
+      '</div>' +
+      '<div class="gc-table-wrap"><table class="gc-table">' +
+        '<thead><tr><th>Evaluation</th><th class="gc-num">Worth</th><th class="gc-num">Grade</th><th></th></tr></thead>' +
+        '<tbody class="gc-rows"></tbody>' +
+      '</table></div>' +
+      '<button type="button" class="gc-add-row">+ Add evaluation</button>' +
+      '<div class="gc-weight-row">' +
+        '<span class="gc-weight-label">0% of 100% assigned</span>' +
+        '<div class="gc-weight-track"><div class="gc-weight-fill"></div></div>' +
+      '</div>' +
+      '<div class="gc-results">' +
+        '<div class="gc-box">' +
+          '<span class="gc-box-label">Grade so far</span>' +
+          '<span class="gc-box-value gc-current">\u2014</span>' +
+          '<span class="gc-box-note gc-current-note">Enter grades to see this update.</span>' +
+        '</div>' +
+        '<div class="gc-box">' +
+          '<span class="gc-box-label">Target grade</span>' +
+          '<span class="gc-target-field"><input class="gc-target-input' + (sample ? "" : "") + '" type="number" placeholder="e.g. 80" min="0" max="100" step="1" value="' + escapeHtml(course.target || "") + '"><span class="gc-suffix">%</span></span>' +
+          '<span class="gc-box-note gc-target-note">Set a target to see what\u2019s needed.</span>' +
+        '</div>' +
+      '</div>';
+
+    var tbody = card.querySelector(".gc-rows");
+    (course.rows || []).forEach(function (row) {
+      tbody.appendChild(buildRowEl(row, sample));
+    });
+
+    return card;
+  }
+
+  // ---------- strip "sample" styling once a field is touched ----------
+  coursesEl.addEventListener("focusin", function (e) {
+    if (e.target.classList && e.target.classList.contains("gc-sample-value")) {
+      e.target.classList.remove("gc-sample-value");
+    }
+  });
+
+  // ---------- recalculation ----------
+  function recalcCourse(card) {
+    var rows = card.querySelectorAll(".gc-rows tr");
+    var totalWeight = 0, gradedWeight = 0, gradedPoints = 0, ungradedWeight = 0;
+
+    rows.forEach(function (tr) {
+      var weight = parseFloat(tr.querySelector(".gc-weight").value);
+      var gradeStr = tr.querySelector(".gc-grade").value.trim();
+      if (isNaN(weight) || weight <= 0) return;
+      totalWeight += weight;
+      if (gradeStr === "") {
+        ungradedWeight += weight;
+      } else {
+        var grade = parseFloat(gradeStr);
+        if (isNaN(grade)) { ungradedWeight += weight; return; }
+        gradedWeight += weight;
+        gradedPoints += (weight * grade) / 100;
+      }
+    });
+
+    var fill = card.querySelector(".gc-weight-fill");
+    var label = card.querySelector(".gc-weight-label");
+    var pct = Math.min(totalWeight, 100);
+    fill.style.width = pct + "%";
+    fill.classList.toggle("gc-over", totalWeight > 100.001);
+    var weightText = round1(totalWeight) + "% of 100% assigned";
+    if (totalWeight > 100.001) weightText += " \u2014 that's over 100%, check your weights";
+    label.textContent = weightText;
+
+    var currentValue = card.querySelector(".gc-current");
+    var currentNote = card.querySelector(".gc-current-note");
+    if (gradedWeight > 0) {
+      var current = (gradedPoints / gradedWeight) * 100;
+      currentValue.textContent = round1(current) + "%";
+      currentNote.textContent = "Based on " + round1(gradedWeight) + "% of the course graded so far.";
+      currentNote.className = "gc-box-note gc-current-note";
+    } else {
+      currentValue.textContent = "\u2014";
+      currentNote.textContent = "Enter grades to see this update.";
+      currentNote.className = "gc-box-note gc-current-note";
+    }
+
+    var targetInput = card.querySelector(".gc-target-input");
+    var targetNote = card.querySelector(".gc-target-note");
+    var targetStr = targetInput.value.trim();
+
+    if (targetStr === "") {
+      targetNote.textContent = "Set a target to see what\u2019s needed.";
+      targetNote.className = "gc-box-note gc-target-note";
+      return;
+    }
+    var target = parseFloat(targetStr);
+    if (isNaN(target)) {
+      targetNote.textContent = "Enter a number between 0 and 100.";
+      targetNote.className = "gc-box-note gc-target-note gc-note-warn";
+      return;
+    }
+    if (ungradedWeight <= 0) {
+      if (gradedWeight === 0) {
+        targetNote.textContent = "Add evaluations and weights first.";
+        targetNote.className = "gc-box-note gc-target-note";
+      } else if (gradedPoints >= target) {
+        targetNote.textContent = "Everything is already graded, and you've hit this target.";
+        targetNote.className = "gc-box-note gc-target-note gc-note-good";
+      } else {
+        targetNote.textContent = "Everything is already graded, and this target isn't reachable now.";
+        targetNote.className = "gc-box-note gc-target-note gc-note-warn";
+      }
+      return;
+    }
+    var needed = ((target - gradedPoints) / ungradedWeight) * 100;
+    if (needed <= 0) {
+      targetNote.textContent = "Already locked in \u2014 even a 0% on what's left keeps you at or above " + round1(target) + "%.";
+      targetNote.className = "gc-box-note gc-target-note gc-note-good";
+    } else if (needed > 100) {
+      targetNote.textContent = "Not possible with what's left. The most you could reach is " + round1(gradedPoints + ungradedWeight) + "%.";
+      targetNote.className = "gc-box-note gc-target-note gc-note-warn";
+    } else {
+      targetNote.textContent = "You'll need an average of " + round1(needed) + "% on the remaining " + round1(ungradedWeight) + "% of the course.";
+      targetNote.className = "gc-box-note gc-target-note gc-note-good";
+    }
+  }
+
+  function recalcAll() {
+    coursesEl.querySelectorAll(".gc-course").forEach(recalcCourse);
+  }
+
+  // ---------- persistence ----------
+  function serialize() {
+    var courses = [];
+    coursesEl.querySelectorAll(".gc-course").forEach(function (card) {
+      var rows = [];
+      card.querySelectorAll(".gc-rows tr").forEach(function (tr) {
+        rows.push({
+          name: tr.querySelector(".gc-name").value,
+          weight: tr.querySelector(".gc-weight").value,
+          grade: tr.querySelector(".gc-grade").value
+        });
+      });
+      courses.push({
+        name: card.querySelector(".gc-course-name").value,
+        target: card.querySelector(".gc-target-input").value,
+        colorIdx: parseInt(card.dataset.colorIdx, 10) || 0,
+        rows: rows
+      });
+    });
+    return { courses: courses };
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize()));
+    } catch (e) { /* storage unavailable, fail silently */ }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.courses) || data.courses.length === 0) return null;
+      return data;
+    } catch (e) { return null; }
+  }
+
+  // ---------- top-level actions ----------
+  function nextColorIdx() {
+    return coursesEl.querySelectorAll(".gc-course").length;
+  }
+
+  function addCourse(course, sample) {
+    course = course || { name: "", target: "", rows: [{ name: "", weight: "", grade: "" }] };
+    var colorIdx = typeof course.colorIdx === "number" ? course.colorIdx : nextColorIdx();
+    var card = buildCourseEl(course, colorIdx, sample);
+    coursesEl.appendChild(card);
+    updateRemoveCourseVisibility();
+    return card;
+  }
+
+  function updateRemoveCourseVisibility() {
+    var cards = coursesEl.querySelectorAll(".gc-course");
+    cards.forEach(function (card) {
+      var btn = card.querySelector(".gc-remove-course");
+      btn.style.display = cards.length > 1 ? "" : "none";
+    });
+  }
+
+  function buildDefault() {
+    coursesEl.innerHTML = "";
+    addCourse({ name: "My Course", target: "", rows: STARTER_ROWS.map(function (r) { return { name: r.name, weight: r.weight, grade: r.grade }; }) }, true);
+    recalcAll();
+  }
+
+  function buildFromSaved(data) {
+    coursesEl.innerHTML = "";
+    data.courses.forEach(function (c) { addCourse(c, false); });
+    recalcAll();
+  }
+
+  // ---------- events ----------
+  coursesEl.addEventListener("input", function (e) {
+    var card = e.target.closest(".gc-course");
+    if (!card) return;
+    recalcCourse(card);
+    save();
+  });
+
+  coursesEl.addEventListener("click", function (e) {
+    if (e.target.classList.contains("gc-remove")) {
+      var tr = e.target.closest("tr");
+      var card = e.target.closest(".gc-course");
+      tr.remove();
+      recalcCourse(card);
+      save();
+      return;
+    }
+    if (e.target.classList.contains("gc-add-row")) {
+      var card2 = e.target.closest(".gc-course");
+      var tbody = card2.querySelector(".gc-rows");
+      tbody.appendChild(buildRowEl({ name: "", weight: "", grade: "" }, false));
+      recalcCourse(card2);
+      save();
+      return;
+    }
+    if (e.target.classList.contains("gc-remove-course")) {
+      var card3 = e.target.closest(".gc-course");
+      if (coursesEl.querySelectorAll(".gc-course").length <= 1) return;
+      if (confirm("Remove this course and its evaluations?")) {
+        card3.remove();
+        updateRemoveCourseVisibility();
+        save();
+      }
+      return;
+    }
+  });
+
+  addCourseBtn.addEventListener("click", function () {
+    var card = addCourse();
+    recalcCourse(card);
+    save();
+    card.querySelector(".gc-course-name").focus();
+  });
+
+  resetBtn.addEventListener("click", function () {
+    if (!confirm("Clear all courses and start over? This can't be undone.")) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    buildDefault();
+  });
+
+  // ---------- init ----------
+  var saved = load();
+  if (saved) {
+    buildFromSaved(saved);
+  } else {
+    buildDefault();
+  }
+})();
+</script>
+
+</body>
+</html>
